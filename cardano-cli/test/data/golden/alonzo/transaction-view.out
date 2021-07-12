@@ -1,0 +1,16 @@
+auxiliary scripts: null
+certificates: null
+collateral inputs:
+- dd3f64a72852a550e8996ef97cc1c08dede4ae1cc031965cbcac1b8535277063#164
+era: Alonzo
+fee: 159 Lovelace
+inputs:
+- 71a7407b1b6258d7a98cca9765743ecf6ea55463c1a45452b11cdd3f7fd4440b#158
+metadata: null
+mint: null
+outputs: []
+update proposal: null
+validity range:
+  lower bound: null
+  upper bound: null
+withdrawals: null

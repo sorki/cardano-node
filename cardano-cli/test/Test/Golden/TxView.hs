@@ -20,7 +20,7 @@ txViewTests =
       , ("golden_view_shelley", golden_view_shelley)
       , ("golden_view_allegra", golden_view_allegra)
       , ("golden_view_mary",    golden_view_mary)
-      -- , ("golden_view_alonzo",  golden_view_alonzo)
+      , ("golden_view_alonzo",  golden_view_alonzo)
       ]
 
 golden_view_byron :: Property
@@ -141,3 +141,35 @@ golden_view_mary =
       execCardanoCLI
         ["transaction", "view", "--tx-body-file", transactionBodyFile]
     diffVsGoldenFile result "test/data/golden/mary/transaction-view.out"
+
+golden_view_alonzo :: Property
+golden_view_alonzo =
+  propertyOnce $
+  moduleWorkspace "tmp" $ \tempDir -> do
+    transactionBodyFile <- noteTempFile tempDir "transaction-body-file"
+
+    -- Create transaction body
+    void $
+      execCardanoCLI
+        [ "transaction", "build-raw"
+        , "--alonzo-era"
+        , "--tx-in"
+        ,   "71a7407b1b6258d7a98cca9765743ecf6ea55463c1a45452b11cdd3f7fd4440b\
+            \#158"
+        -- TODO write a simple Plutus script
+        -- , "--tx-in-script-file", "test/data/golden/alonzo/scripts/in.json"
+        -- , "--tx-in-datum-value", "160"
+        -- , "--tx-in-redeemer-value", "161"
+        -- , "--tx-in-execution-units", "(162,163)"
+        , "--tx-in-collateral"
+        ,   "DD3F64A72852A550E8996EF97CC1C08DEDE4AE1CC031965CBCAC1B8535277063\
+            \#164"
+        , "--fee", "159"
+        , "--out-file", transactionBodyFile
+        ]
+
+    -- View transaction body
+    result <-
+      execCardanoCLI
+        ["transaction", "view", "--tx-body-file", transactionBodyFile]
+    diffVsGoldenFile result "test/data/golden/alonzo/transaction-view.out"

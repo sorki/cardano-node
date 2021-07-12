@@ -33,6 +33,7 @@ friendlyTxBody
   (TxBody
     TxBodyContent
       { txIns
+      , txInsCollateral
       , txOuts
       , txFee
       , txValidityRange
@@ -50,23 +51,26 @@ friendlyTxBody
         , "outputs" .= map friendlyTxOut txOuts
         ]
     ++  [ "auxiliary scripts" .= friendlyAuxScripts txAuxScripts
-        | Just _ <- [auxScriptsSupportedInEra era]
+        | isJust $ auxScriptsSupportedInEra era
         ]
     ++  [ "certificates" .= friendlyCertificates txCertificates
-        | Just _ <- [certificatesSupportedInEra era]
+        | isJust $ certificatesSupportedInEra era
         ]
     ++  [ "metadata" .= friendlyMetadata txMetadata
-        | Just _ <- [txMetadataSupportedInEra era]
+        | isJust $ txMetadataSupportedInEra era
         ]
     ++  [ "mint" .= friendlyMintValue txMintValue
         | Right _ <- [multiAssetSupportedInEra era]
         ]
     ++  [ "update proposal" .= friendlyUpdateProposal txUpdateProposal
-        | Just _ <- [updateProposalSupportedInEra era]
+        | isJust $ updateProposalSupportedInEra era
         ]
     ++  friendlyValidityRange era txValidityRange
     ++  [ "withdrawals" .= friendlyWithdrawals txWithdrawals
-        | Just _ <- [withdrawalsSupportedInEra era]
+        | isJust $ withdrawalsSupportedInEra era
+        ]
+    ++  [ "collateral inputs" .= friendlyCollateralInputs txInsCollateral
+        | isJust $ collateralSupportedInEra era
         ]
 
 friendlyValidityRange
@@ -192,3 +196,8 @@ friendlyAuxScripts = \case
 
 friendlyInputs :: [(TxIn, build)] -> Aeson.Value
 friendlyInputs = toJSON . map fst
+
+friendlyCollateralInputs :: TxInsCollateral era -> Aeson.Value
+friendlyCollateralInputs = \case
+  TxInsCollateralNone   -> Null
+  TxInsCollateral _ ins -> toJSON ins
