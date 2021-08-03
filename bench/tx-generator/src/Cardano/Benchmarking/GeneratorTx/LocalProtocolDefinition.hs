@@ -71,7 +71,7 @@ mangleLocalProtocolDefinition
   connectClient  = benchmarkConnectTxSubmit
                      iom
                      (btConnect_ tracers)
-                     (btSubmission2_ tracers)
+                     (btSubmission_ tracers)
                      (configCodec topLevelConfig)
                      (getNetworkMagic $ configBlock topLevelConfig)
 

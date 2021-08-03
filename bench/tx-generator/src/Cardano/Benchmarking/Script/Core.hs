@@ -20,7 +20,7 @@ import           Control.Monad
 import           Control.Monad.Trans.Except
 import           Control.Monad.IO.Class
 import           Control.Concurrent (threadDelay)
-import           Control.Tracer (traceWith, nullTracer)
+import           Control.Tracer (traceWith)
 
 import           Ouroboros.Network.Protocol.LocalTxSubmission.Type (SubmitResult (..))
 import           Cardano.Api ( AlonzoEra, AsType(..), CardanoEra(..), InAnyCardanoEra(..), AnyCardanoEra(..), IsShelleyBasedEra, Tx
@@ -61,7 +61,7 @@ import           Cardano.Benchmarking.OuroborosImports as Core
 import           Cardano.Benchmarking.PlutusExample as PlutusExample
 import           Cardano.Benchmarking.Tracer as Core
                    ( TraceBenchTxSubmit (..)
-                   , createTracers, btTxSubmit_, btN2N_, btConnect_, btSubmission2_)
+                   , createTracers, btTxSubmit_, btN2N_, btConnect_, btSubmission_)
 import           Cardano.Benchmarking.Types as Core
                    (NumberOfInputsPerTx(..), NumberOfOutputsPerTx(..),NumberOfTxs(..), SubmissionErrorPolicy(..)
                    , TPSRate, TxAdditionalSize(..))
@@ -213,12 +213,11 @@ getConnectClient = do
   tracers  <- get BenchTracers
   (Testnet networkMagic) <- get NetworkId
   protocol <- get Protocol
-  void $ return $(btSubmission2_ tracers)
   ioManager <- askIOManager
   return $ benchmarkConnectTxSubmit
                        ioManager
                        (btConnect_ tracers)
-                       nullTracer -- (btSubmission2_ tracers)
+                       (btSubmission_ tracers)
                        (protocolToCodecConfig protocol)
                        networkMagic
 
