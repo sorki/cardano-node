@@ -71,7 +71,7 @@ renderAnalysisCmdError cmd err =
 --
 -- Analysis command dispatch
 --
-runAnalysisCommand :: AnalysisCommand -> ExceptT AnalysisCmdError IO ()
+runAnalysisCommand :: HasCallStack => AnalysisCommand -> ExceptT AnalysisCmdError IO ()
 runAnalysisCommand (MachineTimelineCmd genesisFile metaFile logfiles oFiles) = do
   chainInfo <-
     ChainInfo
@@ -135,7 +135,7 @@ runBlockPropagation cInfo logfiles BlockPropagationOutputFiles{..} = do
    joinT (a, b) = (,) <$> a <*> b
 
 runMachineTimeline ::
-  ChainInfo -> [JsonLogfile] -> MachineTimelineOutputFiles -> ExceptT Text IO ()
+  HasCallStack => ChainInfo -> [JsonLogfile] -> MachineTimelineOutputFiles -> ExceptT Text IO ()
 runMachineTimeline chainInfo logfiles MachineTimelineOutputFiles{..} = do
   liftIO $ do
     -- 0. Recover LogObjects
@@ -172,7 +172,7 @@ runMachineTimeline chainInfo logfiles MachineTimelineOutputFiles{..} = do
        (renderDerivedSlots drvVectors0)
     forM_ mtofHistogram
       (renderHistogram "CPU usage spans over 85%" "Span length"
-        (toList $ sort $ sSpanLensCPU85 timeline))
+        (toList $ sort $ sSpanLensCPU85All timeline))
 
     flip (maybe $ LBS.putStrLn timelineOutput) mtofAnalysis $
       \case

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
@@ -38,9 +39,9 @@ data MachTimeline
   = MachTimeline
     { sMaxChecks         :: !Word64
     , sSlotMisses        :: ![Word64]
-    , sSpanLensCPU85     :: ![Int]
+    , sSpanLensCPU85All  :: ![Int]
     , sSpanLensCPU85EBnd :: ![Int]
-    , sSpanLensCPU85Rwd  :: ![Int]
+    , sSpanLensCPU85Blk  :: ![Int]
     -- distributions
     , sMissDistrib       :: !(Distribution Float Float)
     , sLeadsDistrib      :: !(Distribution Float Word64)
@@ -49,10 +50,9 @@ data MachTimeline
     , sSpanCheckDistrib  :: !(Distribution Float NominalDiffTime)
     , sSpanLeadDistrib   :: !(Distribution Float NominalDiffTime)
     , sBlocklessDistrib  :: !(Distribution Float Word64)
-    , sSpanLensCPU85Distrib
-                         :: !(Distribution Float Int)
-    , sSpanLensCPU85EBndDistrib :: !(Distribution Float Int)
-    , sSpanLensCPU85RwdDistrib  :: !(Distribution Float Int)
+    , sSpanLensCPU85DistribAll  :: !(Distribution Float Int)
+    , sSpanLensCPU85DistribEBnd :: !(Distribution Float Int)
+    , sSpanLensCPU85DistribBlk  :: !(Distribution Float Int)
     , sResourceDistribs  :: !(Resources (Distribution Float Word64))
     }
   deriving Show
@@ -74,8 +74,9 @@ instance RenderDistributions MachTimeline where
     , Field 5 0 "Heap"     (m!!1)  "Heap"   $ DWord64 (rHeap . sResourceDistribs)
     , Field 5 0 "Live"     (m!!2)  "Live"   $ DWord64 (rLive . sResourceDistribs)
     , Field 5 0 "Allocd"   "Alloc" "MB"     $ DWord64 (rAlloc . sResourceDistribs)
-    , Field 5 0 "CPU85%LensAll"  (c!!0) "All"   $ DInt     sSpanLensCPU85Distrib
-    , Field 5 0 "CPU85%LensEBnd" (c!!1) "EBnd"  $ DInt     sSpanLensCPU85EBndDistrib
+    , Field 5 0 "CPU85%LensAll"  (c!!0) "All"  $ DInt sSpanLensCPU85DistribAll
+    , Field 5 0 "CPU85%LensEBnd" (c!!1) "EBnd" $ DInt sSpanLensCPU85DistribEBnd
+    , Field 5 0 "CPU85%LensBlk"  (c!!2) "Blk"  $ DInt sSpanLensCPU85DistribBlk
     ]
    where
      m = nChunksEachOf  3 6 "Memory usage, MB"
@@ -87,14 +88,14 @@ instance ToJSON MachTimeline where
         [ "kind" .= String "spanLensCPU85EBnd"
         , "xs" .= toJSON sSpanLensCPU85EBnd]
     , AE.Object $ HashMap.fromList
-        [ "kind" .= String "spanLensCPU85Rwd"
-        , "xs" .= toJSON sSpanLensCPU85Rwd]
+        [ "kind" .= String "spanLensCPU85Blk"
+        , "xs" .= toJSON sSpanLensCPU85Blk]
     , AE.Object $ HashMap.fromList
-        [ "kind" .= String "spanLensCPU85"
-        , "xs" .= toJSON sSpanLensCPU85]
+        [ "kind" .= String "spanLensCPU85All"
+        , "xs" .= toJSON sSpanLensCPU85All]
     , AE.Object $ HashMap.fromList
         [ "kind" .= String "spanLensCPU85Sorted"
-        , "xs" .= toJSON (sort sSpanLensCPU85)]
+        , "xs" .= toJSON (sort sSpanLensCPU85All)]
     , extendObject "kind" "spancheck" $ toJSON sSpanCheckDistrib
     , extendObject "kind" "spanlead"  $ toJSON sSpanLeadDistrib
     , extendObject "kind" "cpu"       $ toJSON (rCentiCpu sResourceDistribs)
@@ -107,64 +108,61 @@ instance ToJSON MachTimeline where
     , extendObject "kind" "rss"       $ toJSON (rRSS      sResourceDistribs)
     , extendObject "kind" "heap"      $ toJSON (rHeap     sResourceDistribs)
     , extendObject "kind" "live"      $ toJSON (rLive     sResourceDistribs)
-    , extendObject "kind" "spanLensCPU85Distrib"  $
-                                        toJSON sSpanLensCPU85Distrib
-    , extendObject "kind" "spanLensCPU85EBndDistrib"  $
-                                        toJSON sSpanLensCPU85EBndDistrib
-    , extendObject "kind" "spanLensCPU85RwdDistrib"  $
-                                        toJSON sSpanLensCPU85RwdDistrib
+    , extendObject "kind" "spanLensCPU85DistribAll"  $
+                                        toJSON sSpanLensCPU85DistribAll
+    , extendObject "kind" "spanLensCPU85DistribEBnd" $
+                                        toJSON sSpanLensCPU85DistribEBnd
+    , extendObject "kind" "spanLensCPU85DistribBlk"  $
+                                        toJSON sSpanLensCPU85DistribBlk
     ]
 
 slotStatsMachTimeline :: ChainInfo -> [SlotStats] -> MachTimeline
 slotStatsMachTimeline CInfo{} slots =
   MachTimeline
-  { sMaxChecks        = maxChecks
-  , sSlotMisses       = misses
-  , sSpanLensCPU85    = spanLensCPU85
+  { sMaxChecks         = maxChecks
+  , sSlotMisses        = misses
+  , sSpanLensCPU85All  = spanLensCPU85All
   , sSpanLensCPU85EBnd = sSpanLensCPU85EBnd
-  , sSpanLensCPU85Rwd  = sSpanLensCPU85Rwd
+  , sSpanLensCPU85Blk  = sSpanLensCPU85Blk
   --
-  , sMissDistrib      = computeDistribution stdPercentiles missRatios
-  , sLeadsDistrib     =
-      computeDistribution stdPercentiles (slCountLeads <$> slots)
-  , sUtxoDistrib      =
-      computeDistribution stdPercentiles (slUtxoSize <$> slots)
-  , sDensityDistrib   =
-      computeDistribution stdPercentiles (slDensity <$> slots)
-  , sSpanCheckDistrib =
-      computeDistribution stdPercentiles (slSpanCheck <$> slots)
-  , sSpanLeadDistrib =
-      computeDistribution stdPercentiles (slSpanLead <$> slots)
-  , sBlocklessDistrib =
-      computeDistribution stdPercentiles (slBlockless <$> slots)
-  , sSpanLensCPU85Distrib
-                      = computeDistribution stdPercentiles spanLensCPU85
-  , sResourceDistribs =
-      computeResDistrib stdPercentiles resDistProjs slots
-  , sSpanLensCPU85EBndDistrib = computeDistribution stdPercentiles sSpanLensCPU85EBnd
-  , sSpanLensCPU85RwdDistrib  = computeDistribution stdPercentiles sSpanLensCPU85Rwd
+  , sMissDistrib              = stdDistrib missRatios
+  , sLeadsDistrib             = stdDistrib (slots <&> slCountLeads)
+  , sUtxoDistrib              = stdDistrib (slots <&> slUtxoSize)
+  , sDensityDistrib           = stdDistrib (slots <&> slDensity)
+  , sSpanCheckDistrib         = stdDistrib (slots <&> slSpanCheck)
+  , sSpanLeadDistrib          = stdDistrib (slots <&> slSpanLead)
+  , sBlocklessDistrib         = stdDistrib (slots <&> slBlockless)
+  , sSpanLensCPU85DistribAll  = stdDistrib spanLensCPU85All
+  , sSpanLensCPU85DistribEBnd = stdDistrib sSpanLensCPU85EBnd
+  , sSpanLensCPU85DistribBlk  = stdDistrib sSpanLensCPU85Blk
+  , sResourceDistribs         = computeResDistrib stdPercentiles resDistProjs slots
   }
  where
-   sSpanLensCPU85EBnd = Vec.length <$>
-                        filter (spanContainsEpochSlot 3) spansCPU85
-   sSpanLensCPU85Rwd  = Vec.length <$>
-                        filter (spanContainsEpochSlot 803) spansCPU85
+   stdDistrib :: forall v. (Real v, ToRealFrac v Float) => [v] -> Distribution Float v
+   stdDistrib = computeDistribution stdPercentiles
+
+   spanLensCPU85All   =    spanLen <$> spansCPU85
+   sSpanLensCPU85EBnd = Vec.length <$> filter (spanContainsEpochSlot 3) spansCPU85
+   sSpanLensCPU85Blk  = Vec.length <$> filter spanAtBlockStart          spansCPU85
+
+   spansCPU85 :: [Vector SlotStats]
+   spansCPU85       = spans
+                        ((/= Just False) . fmap (>=85) . rCentiCpu . slResources)
+                        (toList slots)
 
    checkCounts      = slCountChecks <$> slots
    maxChecks        = if length checkCounts == 0
                       then 0 else maximum checkCounts
    misses           = (maxChecks -) <$> checkCounts
    missRatios       = missRatio <$> misses
-   spansCPU85 :: [Vector SlotStats]
-   spansCPU85       = spans
-                        ((/= Just False) . fmap (>=85) . rCentiCpu . slResources)
-                        (toList slots)
-   spanLensCPU85    = spanLen <$> spansCPU85
    spanContainsEpochSlot :: Word64 -> Vector SlotStats -> Bool
    spanContainsEpochSlot s =
      uncurry (&&)
      . ((s >) . slEpochSlot . Vec.head &&&
         (s <) . slEpochSlot . Vec.last)
+   spanAtBlockStart :: Vector SlotStats -> Bool
+   spanAtBlockStart = inRange 0 1 . slBlockless . Vec.head
+   inRange lo hi x = x >= lo && x <= hi
    spanLen :: Vector SlotStats -> Int
    spanLen = fromIntegral . unSlotNo . uncurry (-) . (slSlot *** slSlot) . (Vec.last &&& Vec.head)
    resDistProjs     =
@@ -226,7 +224,7 @@ timelineFromLogObjects ci =
    zeroRunScalars :: RunScalars
    zeroRunScalars = RunScalars Nothing Nothing Nothing
 
-timelineStep :: ChainInfo -> TimelineAccum -> LogObject -> TimelineAccum
+timelineStep :: HasCallStack => ChainInfo -> TimelineAccum -> LogObject -> TimelineAccum
 timelineStep ci a@TimelineAccum{aSlotStats=cur:rSLs, ..} = \case
   lo@LogObject{loAt, loBody=LOTraceStartLeadershipCheck slot _ _} ->
     if slSlot cur > slot
