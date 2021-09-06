@@ -11,7 +11,8 @@ final: prev: with final;
       haskell-nix
       buildPackages
       gitrev
-      ;
+    ;
+    profiling = true;
   };
   cardanoNodeHaskellPackages = cardanoNodeProject.hsPkgs;
   cardanoNodeProfiledHaskellPackages = (import ./haskell.nix {
