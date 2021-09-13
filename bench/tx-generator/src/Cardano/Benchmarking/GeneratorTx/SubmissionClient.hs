@@ -178,7 +178,7 @@ txSubmissionClient tr bmtr initialTxSource endOfProtocolCallback =
     traceWith tr $ TxList (length toSend)
     traceWith bmtr $ TraceBenchTxSubServReq reqTxIds
     traceWith bmtr $ TraceBenchTxSubServOuts (getTxId . getTxBody <$> ua)
-    traceWith bmtr $ TraceBenchTxSubDebug $ "submitting : " ++ show toSend
+    traceWith bmtr $ TraceBenchTxSubDebug $ "submitting : " ++ show (map (\x-> (getTxId $ getTxBody x ,x)) toSend)
     unless (L.null missIds) $
       traceWith bmtr $ TraceBenchTxSubServUnav missIds
     pure $ SendMsgReplyTxs (toGenTx <$> toSend)
