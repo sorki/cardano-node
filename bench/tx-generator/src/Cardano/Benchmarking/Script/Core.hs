@@ -291,11 +291,10 @@ localSubmitTx tx = do
   submitTracer <- btTxSubmit_ <$> get BenchTracers
   submit <- getLocalSubmitTx
   ret <- liftIO $ submit tx
-  case ret of
-    SubmitSuccess -> return ()
-    SubmitFail e -> liftIO $ traceWith submitTracer $
-                      TraceBenchTxSubDebug $ mconcat
-                        [ "local submit failed: " , show e , " (" , show tx , ")"]
+  let msg = case ret of
+        SubmitSuccess -> mconcat [ "local submit success: (" , show tx , ")"]
+        SubmitFail e -> mconcat [ "local submit failed: " , show e , " (" , show tx , ")"]
+  liftIO $ traceWith submitTracer $ TraceBenchTxSubDebug msg
   return ret
 
 makeMetadata :: forall era. IsShelleyBasedEra era => ActionM (TxMetadataInEra era)
