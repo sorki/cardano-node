@@ -107,6 +107,39 @@ includeChange fee spend have = case compare changeValue 0 of
   LT -> error "genTX: Bad transaction: insufficient funds"
   where changeValue = sum have - sum spend - fee
 
+mkUTxOSafe :: forall era. IsShelleyBasedEra era
+  => NetworkId
+  -> SigningKey PaymentKey
+  -> AddressInEra era
+  -> Validity
+  -> ToUTxO era
+mkUTxOSafe networkId key expectedAddress validity values
+  = ( map mkTxOut values
+    , newFunds
+    )
+ where
+  mkTxOut v = TxOut localAddress (mkTxOutValueAdaOnly v) TxOutDatumHashNone
+  genAddress = Tx.keyAddress @ era networkId key
+  localAddress
+    = if genAddress == expectedAddress
+         then genAddress
+         else error $ concat [ "unexpected generated address : ", show genAddress
+                             , "expected : ", show expectedAddress
+                             , "key : ", show key
+                             , "networkId :", show networkId
+                             ]
+
+  newFunds txId = zipWith (mkNewFund txId) [TxIx 0 ..] values
+
+  mkNewFund :: TxId -> TxIx -> Lovelace -> Fund
+  mkNewFund txId txIx val = Fund $ InAnyCardanoEra (cardanoEra @ era) $ FundInEra {
+      _fundTxIn = TxIn txId txIx
+    , _fundVal = mkTxOutValueAdaOnly val
+    , _fundSigningKey = key
+    , _fundValidity = validity
+    , _fundVariant = PlainOldFund
+    }
+
 mkUTxO :: forall era. IsShelleyBasedEra era
   => NetworkId
   -> SigningKey PaymentKey

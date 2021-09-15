@@ -311,6 +311,7 @@ runBenchmark threadName txCount tps
 runBenchmarkInEra :: forall era. IsShelleyBasedEra era => ThreadName -> NumberOfTxs -> TPSRate -> AsType era -> ActionM ()
 runBenchmarkInEra (ThreadName threadName) txCount tps era = do
   tracers  <- get BenchTracers
+  let submitTracer = btTxSubmit_ tracers
   networkId <- get NetworkId
   fundKey <- getName $ KeyName "pass-partout" -- should be walletkey
   targets  <- getUser TTargets
@@ -321,6 +322,8 @@ runBenchmarkInEra (ThreadName threadName) txCount tps era = do
   walletRef <- get GlobalWallet
   metadata <- makeMetadata
   connectClient <- getConnectClient
+  let expectedAddress = keyAddress networkId fundKey
+  liftIO $ traceWith submitTracer $ TraceBenchTxSubDebug ("runBenchmarkInEra expected address :" ++ show expectedAddress)
   let
 --    minValue :: Lovelace
     (Quantity minValue) = lovelaceToQuantity $ fromIntegral numOutputs * minValuePerUTxO + fee
@@ -348,7 +351,7 @@ runBenchmarkInEra (ThreadName threadName) txCount tps era = do
     txGenerator = genTx (mkFee fee) metadata
 
     toUTxO :: FundSet.Target -> FundSet.SeqNumber -> ToUTxO era
-    toUTxO target seqNumber = Wallet.mkUTxO networkId fundKey (InFlight target seqNumber)
+    toUTxO target seqNumber = Wallet.mkUTxOSafe networkId fundKey expectedAddress (InFlight target seqNumber)
 
     fundToStore = mkWalletFundStore walletRef
 
