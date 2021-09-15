@@ -10,13 +10,6 @@ import Control.Monad
 
 import Cardano.Api
 
-keyAddress :: NetworkId -> SigningKey PaymentKey -> AddressInEra MaryEra
-keyAddress networkId k
-  = makeShelleyAddressInEra
-      networkId
-      (PaymentCredentialByKey $ verificationKeyHash $ getVerificationKey k)
-      NoStakeAddress
-
 -- readTextEnvelopeFromFile "/tmp/Downloads/tf"
 keyEnvelope :: TextEnvelope
 keyEnvelope = TextEnvelope
@@ -31,23 +24,23 @@ testKey = case deserialiseFromTextEnvelope (AsSigningKey AsGenesisUTxOKey) keyEn
 
 main :: IO ()
 main = do
-  let expectedAddress = keyAddress (Testnet $ NetworkMagic 42) testKey
+  let expectedVKey = getVerificationKey testKey
   putStrLn $ show testKey
-  putStrLn $ show expectedAddress
+  putStrLn $ show expectedVKey
   good <- newMVar 0
   bad <- newMVar 0
-  _ <- forkIO $ runner good bad testKey expectedAddress
-  _ <- forkIO $ runner good bad testKey expectedAddress
+  _ <- forkIO $ runner good bad testKey expectedVKey
+  _ <- forkIO $ runner good bad testKey expectedVKey
   forever $ do
     g <- readMVar good
     b <- readMVar bad
     putStrLn $ show (g,b)
     threadDelay 1000000
 
-runner :: MVar Integer -> MVar Integer -> SigningKey PaymentKey -> AddressInEra MaryEra -> IO ()
+runner :: MVar Integer -> MVar Integer -> SigningKey PaymentKey -> VerificationKey PaymentKey -> IO ()
 runner good bad key expectedAddress = forever $ do
   addr <- do
-    return $ keyAddress (Testnet $ NetworkMagic 42) key
+    return $ getVerificationKey key
   if addr == expectedAddress
     then modifyMVar_ good (return . succ)
     else modifyMVar_ bad (return . succ)
