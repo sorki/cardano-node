@@ -132,6 +132,19 @@ executable tx-generator
   build-depends:       base >=4.12 && <5
                      , tx-generator
 
+executable test-address-gen
+  hs-source-dirs:      test
+  main-is:             test-address-gen.hs
+  default-language:    Haskell2010
+  ghc-options:         -threaded
+                       -Wall
+                       -rtsopts
+                       "-with-rtsopts=-T"
+
+  build-depends:       base >=4.12 && <5
+                     , cardano-api
+
+                     
 test-suite tx-generator-test
   hs-source-dirs:       test
   main-is:              Main.hs
