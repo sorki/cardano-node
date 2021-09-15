@@ -609,10 +609,9 @@ module Cardano.Api (
     queryExpr,
     determineEraExpr,
 
-    HeaderStateTip(..),
-    headerStateTipToSlotNo,
-    headerStateTipToBlockNo,
-    headerStateTipToHeaderHash
+    Point(..),
+    pointToSlotNo,
+    pointToHeaderHash
 
   ) where
 

@@ -36,7 +36,7 @@ import           Cardano.Ledger.Coin
 import           Cardano.Ledger.Crypto (StandardCrypto)
 import           Cardano.Ledger.Keys (KeyHash (..), KeyRole (..))
 import           Cardano.Prelude hiding (atomically)
-import           Cardano.Slotting.Slot (WithOrigin (..))
+import           Cardano.Slotting.Slot (withOriginToMaybe)
 import           Control.Monad.Trans.Except (except)
 import           Control.Monad.Trans.Except.Extra (firstExceptT, handleIOExceptT, hoistMaybe, left)
 import           Data.Aeson (ToJSON (..), (.=))
@@ -227,47 +227,48 @@ runQueryTip (AnyConsensusModeParams cModeParams) network mOutFile = do
       eLocalState <- liftIO $ executeLocalStateQueryExpr localNodeConnInfo Nothing $ \ntcVersion -> do
         era <- queryExpr (QueryCurrentEra CardanoModeIsMultiEra)
         eraHistory <- queryExpr (QueryEraHistory CardanoModeIsMultiEra)
-        mHeaderStateTip <- if ntcVersion >= NodeToClientV_10
-          then Just <$> queryExpr QueryHeaderStateTip
+        mChainBlockNo <- if ntcVersion >= NodeToClientV_10
+          then Just <$> queryExpr QueryChainBlockNo
+          else return Nothing
+        mChainPoint <- if ntcVersion >= NodeToClientV_10
+          then Just <$> queryExpr QueryChainPoint
           else return Nothing
         mSystemStart <- if ntcVersion >= NodeToClientV_9
           then Just <$> queryExpr QuerySystemStart
           else return Nothing
+
+        let mChainTipInfo = O.ChainTipInfo
+              <$> join (fmap withOriginToMaybe mChainBlockNo)
+              <*> join (withOriginToMaybe . pointToSlotNo <$> mChainPoint)
+              <*> join (fmap (renderHeaderHash Proxy) . withOriginToMaybe . pointToHeaderHash <$> mChainPoint)
         return O.QueryTipLocalState
           { O.era = era
           , O.eraHistory = eraHistory
           , O.mSystemStart = mSystemStart
-          , O.mHeaderStateTip = mHeaderStateTip
+          , O.mChainTipInfo = mChainTipInfo
           }
 
       mLocalState <- hushM (first ShelleyQueryCmdAcquireFailure eLocalState) $ \e ->
         liftIO . T.hPutStrLn IO.stderr $ "Warning: Local state unavailable: " <> renderShelleyQueryCmdError e
 
-      chainTip <- case mLocalState >>= O.mHeaderStateTip of
-        Just headerStateTip ->
-          case headerStateTip of
-            Origin -> return Origin
-            At hst -> return $ At O.HeaderStateTipOutput
-              { O.slotNo = headerStateTipToSlotNo hst
-              , O.blockNo = headerStateTipToBlockNo hst
-              , O.headerHash = renderHeaderHash Proxy (headerStateTipToHeaderHash hst)
-              }
+      mChainTip <- case mLocalState >>= O.mChainTipInfo of
+        Just chainTipInfo -> return $ Just chainTipInfo
         Nothing -> do
           liftIO . T.hPutStrLn IO.stderr $
             "Warning: Local header state query unavailable.  Falling back to chain sync query"
           ct <- liftIO $ getLocalChainTip localNodeConnInfo
           case ct of
-            ChainTipAtGenesis -> return Origin
+            ChainTipAtGenesis -> return Nothing
             ChainTip slotNo hash blockNo ->
-              return $ At O.HeaderStateTipOutput
-                { O.slotNo = slotNo
-                , O.headerHash = serialiseToRawBytesHexText hash
-                , O.blockNo = blockNo
+              return $ Just O.ChainTipInfo
+                { O.mSlotNo = slotNo
+                , O.mHeaderHash = serialiseToRawBytesHexText hash
+                , O.mBlockNo = blockNo
                 }
 
-      let tipSlotNo = case chainTip of
-            Origin -> 0
-            At (O.HeaderStateTipOutput slotNo _ _) -> slotNo
+      let tipSlotNo = case mChainTip of
+            Nothing -> 0
+            Just (O.ChainTipInfo _ slotNo _) -> slotNo
 
       mLocalStateOutput :: Maybe O.QueryTipLocalStateOutput <- fmap join . forM mLocalState $ \localState -> do
         case slotToEpoch tipSlotNo (O.eraHistory localState) of
@@ -295,7 +296,7 @@ runQueryTip (AnyConsensusModeParams cModeParams) network mOutFile = do
               }
 
       let jsonOutput = encodePretty $ O.QueryTipOutput
-            { O.chainTip = chainTip
+            { O.mChainTip = mChainTip
             , O.mLocalState = mLocalStateOutput
             }
 

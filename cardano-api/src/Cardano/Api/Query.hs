@@ -52,10 +52,9 @@ module Cardano.Api.Query (
     toLedgerUTxO,
     fromLedgerUTxO,
 
-    HeaderStateTip(..),
-    headerStateTipToSlotNo,
-    headerStateTipToBlockNo,
-    headerStateTipToHeaderHash
+    Point(..),
+    pointToSlotNo,
+    pointToHeaderHash
   ) where
 
 import           Data.Aeson (ToJSON (..), object, (.=))
@@ -85,6 +84,8 @@ import qualified Ouroboros.Consensus.Cardano.Block as Consensus
 import qualified Ouroboros.Consensus.Ledger.Query as Consensus
 import qualified Ouroboros.Consensus.Shelley.Ledger as Consensus
 import           Ouroboros.Network.Block (Serialised, HeaderHash)
+import qualified Ouroboros.Network.Block as Network
+import qualified Ouroboros.Network.Point as Network (Block (..))
 
 import           Cardano.Binary
 import           Cardano.Slotting.Slot (WithOrigin (..))
@@ -133,34 +134,33 @@ data QueryInMode mode result where
   QuerySystemStart
     :: QueryInMode mode SystemStart
 
-  QueryHeaderStateTip
-    :: QueryInMode mode (WithOrigin (HeaderStateTip mode))
+  QueryChainBlockNo
+    :: QueryInMode mode (WithOrigin BlockNo)
 
-data HeaderStateTip mode where
-  HeaderStateTip
+  QueryChainPoint
+    :: QueryInMode mode (Point mode)
+
+data Point mode where
+  Point
     :: ( ConsensusBlockForMode mode ~ blk
-      --  , HeaderHash blk ~ Hash BlockHeader
        )
-    => Consensus.HeaderStateTip blk
-    -> HeaderStateTip mode
+    => Network.Point blk
+    -> Point mode
 
--- headerStateTipToChainTip :: (ConsensusBlockForMode mode ~ blk, HeaderHash blk ~ Hash BlockHeader) => HeaderStateTip mode -> ChainTip
--- headerStateTipToChainTip (HeaderStateTip (Consensus.HeaderStateTip a b c)) = ChainTip a c b
+pointToSlotNo :: Point mode -> WithOrigin SlotNo
+pointToSlotNo (Point (Network.Point Origin)) = Origin
+pointToSlotNo (Point (Network.Point (At (Network.Block slotNo _)))) = At slotNo
 
-headerStateTipToSlotNo :: HeaderStateTip mode -> SlotNo
-headerStateTipToSlotNo (HeaderStateTip (Consensus.HeaderStateTip slotNo _ _)) = slotNo
+pointToHeaderHash :: ConsensusBlockForMode mode ~ blk => Point mode -> WithOrigin (HeaderHash blk)
+pointToHeaderHash (Point (Network.Point Origin)) = Origin
+pointToHeaderHash (Point (Network.Point (At (Network.Block _ headerHash)))) = At headerHash
 
-headerStateTipToBlockNo :: HeaderStateTip mode -> BlockNo
-headerStateTipToBlockNo (HeaderStateTip (Consensus.HeaderStateTip _ blockNo _)) = blockNo
-
-headerStateTipToHeaderHash :: ConsensusBlockForMode mode ~ blk => HeaderStateTip mode -> HeaderHash blk
-headerStateTipToHeaderHash (HeaderStateTip (Consensus.HeaderStateTip _ _ headerHash)) = headerHash
-
-instance (Show (HeaderHash blk), ConsensusBlockForMode mode ~ blk) => Show (HeaderStateTip mode) where
-  show (HeaderStateTip cHeaderStateTip) = show cHeaderStateTip
-
--- headerStateTipSlot :: HeaderStateTip mode -> SlotNo
--- headerStateTipSlot (HeaderStateTip cHeaderStateTip) = 
+instance
+    ( Show (HeaderHash blk)
+    , Network.StandardHash blk
+    , ConsensusBlockForMode mode ~ blk
+    ) => Show (Point mode) where
+  show (Point cPoint) = show cPoint
 
 data EraHistory mode where
   EraHistory
@@ -199,9 +199,6 @@ deriving instance Show (QueryInEra era result)
 
 
 data QueryInShelleyBasedEra era result where
-     QueryChainPoint
-       :: QueryInShelleyBasedEra era ChainPoint
-
      QueryEpoch
        :: QueryInShelleyBasedEra era EpochNo
 
@@ -409,7 +406,9 @@ toConsensusQuery (QueryEraHistory CardanoModeIsMultiEra) =
 
 toConsensusQuery QuerySystemStart = Some Consensus.GetSystemStart
 
-toConsensusQuery QueryHeaderStateTip = Some Consensus.GetHeaderStateTip
+toConsensusQuery QueryChainBlockNo = Some Consensus.GetChainBlockNo
+
+toConsensusQuery QueryChainPoint = Some Consensus.GetChainPoint
 
 toConsensusQuery (QueryInEra ByronEraInCardanoMode QueryByronUpdateState) =
     Some $ Consensus.BlockQuery $
@@ -436,9 +435,6 @@ toConsensusQueryShelleyBased
   => EraInMode era mode
   -> QueryInShelleyBasedEra era result
   -> Some (Consensus.Query block)
-toConsensusQueryShelleyBased erainmode QueryChainPoint =
-    Some (consensusQueryInEraInMode erainmode Consensus.GetLedgerTip)
-
 toConsensusQueryShelleyBased erainmode QueryEpoch =
     Some (consensusQueryInEraInMode erainmode Consensus.GetEpochNo)
 
@@ -535,10 +531,16 @@ fromConsensusQueryResult QuerySystemStart q' r' =
         -> r'
       _ -> fromConsensusQueryResultMismatch
 
-fromConsensusQueryResult QueryHeaderStateTip q' r' =
+fromConsensusQueryResult QueryChainBlockNo q' r' =
     case q' of
-      Consensus.GetHeaderStateTip
-        -> fmap HeaderStateTip r'
+      Consensus.GetChainBlockNo
+        -> r'
+      _ -> fromConsensusQueryResultMismatch
+
+fromConsensusQueryResult QueryChainPoint q' r' =
+    case q' of
+      Consensus.GetChainPoint
+        -> Point r'
       _ -> fromConsensusQueryResultMismatch
 
 fromConsensusQueryResult (QueryCurrentEra CardanoModeIsMultiEra) q' r' =
@@ -623,18 +625,12 @@ fromConsensusQueryResult (QueryInEra AlonzoEraInCardanoMode
 fromConsensusQueryResultShelleyBased
   :: forall era ledgerera result result'.
      ShelleyLedgerEra era ~ ledgerera
-  => Consensus.ShelleyBasedEra ledgerera
   => Ledger.Crypto ledgerera ~ Consensus.StandardCrypto
   => ShelleyBasedEra era
   -> QueryInShelleyBasedEra era result
   -> Consensus.BlockQuery (Consensus.ShelleyBlock ledgerera) result'
   -> result'
   -> result
-fromConsensusQueryResultShelleyBased _ QueryChainPoint q' point =
-    case q' of
-      Consensus.GetLedgerTip -> fromConsensusPoint point
-      _                      -> fromConsensusQueryResultMismatch
-
 fromConsensusQueryResultShelleyBased _ QueryEpoch q' epoch =
     case q' of
       Consensus.GetEpochNo -> epoch

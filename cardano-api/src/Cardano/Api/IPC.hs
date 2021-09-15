@@ -4,7 +4,6 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
@@ -189,8 +188,7 @@ connectToLocalNode localNodeConnectInfo handlers
 -- protocol handlers parameterized on the negotiated node-to-client protocol
 -- version.
 --
-connectToLocalNodeWithVersion :: forall mode.
-                                 LocalNodeConnectInfo mode
+connectToLocalNodeWithVersion :: LocalNodeConnectInfo mode
                               -> (NodeToClientVersion -> LocalNodeClientProtocolsInMode mode)
                               -> IO ()
 connectToLocalNodeWithVersion LocalNodeConnectInfo {
