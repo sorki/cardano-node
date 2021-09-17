@@ -17,6 +17,7 @@ import           System.IO (hFlush, stdout)
 
 import           Cardano.Logging.DocuGenerator
 import           Cardano.Logging.Types
+import           Cardano.Logging.Utils(uncurry3)
 
 import qualified Control.Tracer as T
 
@@ -88,7 +89,3 @@ initLogging stateRef = do
                         hFlush stdout
   modifyIORef stateRef (\ st ->
     st {stRunning = Just (inChan, outChan, threadId)})
-
--- | Converts a curried function to a function on a triple.
-uncurry3 :: (a -> b -> c -> d) -> (a, b, c) -> d
-uncurry3 f ~(a,b,c) = f a b c

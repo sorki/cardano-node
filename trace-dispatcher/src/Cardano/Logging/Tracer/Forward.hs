@@ -59,6 +59,8 @@ import           Trace.Forward.Utils
 
 import           Cardano.Logging.DocuGenerator
 import           Cardano.Logging.Types
+import           Cardano.Logging.Utils(uncurry3)
+
 
 -- Instances for 'TraceObject' to forward it using 'trace-forward' library.
 
@@ -199,7 +201,3 @@ doListenToAcceptor snocket address timeLimits (ekgConfig, tfConfig) sink store =
          }
       | (prot, num) <- protocols
       ]
-
--- | Converts a curried function to a function on a triple.
-uncurry3 :: (a -> b -> c -> d) -> ((a, b, c) -> d)
-uncurry3 f ~(a,b,c) = f a b c

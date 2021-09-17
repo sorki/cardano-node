@@ -239,15 +239,15 @@ data FormatLogging =
 -- Configuration options for individual namespace elements
 data ConfigOption =
     -- | Severity level for a filter (default is WarningF)
-    CoSeverity SeverityF
+    ConfSeverity SeverityF
     -- | Detail level (default is DNormal)
-  | CoDetail DetailLevel
+  | ConfDetail DetailLevel
   -- | To which backend to pass
   --   Default is [EKGBackend, Forwarder, Stdout HumanFormatColoured]
-  | CoBackend [BackendConfig]
+  | ConfBackend [BackendConfig]
   -- | Construct a limiter with name (Text) and limiting to the Double,
   -- which represents frequency in number of messages per second
-  | CoLimiter Text Double
+  | ConfLimiter Text Double
   deriving (Eq, Ord, Show)
 
 newtype RemoteAddr

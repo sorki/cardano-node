@@ -86,7 +86,7 @@ filterTraceBySeverity (Just minSeverity) =
     filterTrace $
       \case
         (_lc, Just _, _a)  -> True
-        (lc, _, _e)                ->
+        (lc, _, _e)        ->
           case lcSeverity lc of
             Just s  -> fromEnum s >= fromEnum minSeverity
             Nothing -> True
@@ -216,7 +216,7 @@ foldTraceM cata initial (Trace tr) = do
         (lc, Nothing, v) -> do
           x' <- modifyMVar ref $ \x ->
             let ! accu = cata x lc v
-            in pure $ join (,) accu
+            in pure (accu,accu) 
           T.traceWith tr (lc, Nothing, Folding x')
         (lc, Just control, _v) -> do
           T.traceWith tr (lc, Just control, Folding initial)

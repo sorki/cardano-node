@@ -11,9 +11,9 @@ import           Cardano.Logging.Types
 
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import qualified Control.Tracer as T
-import           Data.IORef (newIORef, readIORef, writeIORef)
+import           Data.IORef (newIORef, readIORef, writeIORef, IORef)
 import qualified Data.Map.Strict as Map
-import           Data.Text (intercalate, pack)
+import           Data.Text (intercalate, pack, Text)
 import qualified System.Metrics as Metrics
 import qualified System.Metrics.Counter as Counter
 import qualified System.Metrics.Gauge as Gauge
@@ -30,6 +30,12 @@ ekgTracer storeOrServer = liftIO $ do
     pure $ Trace $ T.arrow $ T.emit $
       output rgsGauges rgsLabels rgsCounters
   where
+    output :: MonadIO m =>
+         IORef (Map.Map Text Gauge.Gauge)
+      -> IORef (Map.Map Text Label.Label)
+      -> IORef (Map.Map Text Counter.Counter)
+      -> (LoggingContext, Maybe TraceControl, FormattedMessage)
+      -> m ()
     output rgsGauges rgsLabels rgsCounters
       (LoggingContext{..}, Nothing, FormattedMetrics m) =
         liftIO $ mapM_
@@ -39,6 +45,13 @@ ekgTracer storeOrServer = liftIO $ do
     output _ _ _ (LoggingContext{}, Just _c, _v) =
       pure ()
 
+    setIt :: 
+         IORef (Map.Map Text Gauge.Gauge)
+      -> IORef (Map.Map Text Label.Label)
+      -> IORef (Map.Map Text Counter.Counter)
+      -> Namespace
+      -> Metric
+      -> IO ()
     setIt rgsGauges _rgsLabels _rgsCounters _namespace
       (IntM ns theInt) = do
         rgsMap <- readIORef rgsGauges

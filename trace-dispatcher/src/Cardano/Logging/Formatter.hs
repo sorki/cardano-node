@@ -38,10 +38,10 @@ metricsFormatter
   :: forall a m . (LogFormatting a, MonadIO m)
   => Text
   -> Trace m FormattedMessage
-  -> m (Trace m a)
-metricsFormatter application (Trace tr) = do
+  -> Trace m a
+metricsFormatter application (Trace tr) =
   let trr = mkTracer
-  pure $ Trace (T.arrow trr)
+  in Trace (T.arrow trr)
  where
     mkTracer = T.emit $
       \ case

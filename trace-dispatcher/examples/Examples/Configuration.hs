@@ -40,10 +40,10 @@ tracers  = do
 config1 :: TraceConfig
 config1 = TraceConfig {
       tcOptions = Map.fromList
-          [ ([], [CoSeverity SilenceF])
-          , (["tracer1"], [CoSeverity ErrorF])
-          , (["tracer2"], [CoSeverity CriticalF])
-          , (["tracer2","bubble"], [CoSeverity InfoF])
+          [ ([], [ConfSeverity SilenceF])
+          , (["tracer1"], [ConfSeverity ErrorF])
+          , (["tracer2"], [ConfSeverity CriticalF])
+          , (["tracer2","bubble"], [ConfSeverity InfoF])
           ]
     , tcForwarder = LocalSocket "forwarder.log"
     , tcForwarderQueueSize = 100
@@ -52,9 +52,9 @@ config1 = TraceConfig {
 config2 :: TraceConfig
 config2 = TraceConfig {
       tcOptions = Map.fromList
-        [ ([], [CoSeverity InfoF])
-        , (["tracer2"], [CoSeverity WarningF])
-        , (["tracer2","bubble"], [CoSeverity WarningF])
+        [ ([], [ConfSeverity InfoF])
+        , (["tracer2"], [ConfSeverity WarningF])
+        , (["tracer2","bubble"], [ConfSeverity WarningF])
         ]
     , tcForwarder = LocalSocket "forwarder.log"
     , tcForwarderQueueSize = 100

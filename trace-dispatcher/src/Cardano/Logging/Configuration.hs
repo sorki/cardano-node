@@ -45,9 +45,9 @@ defaultConfig :: TraceConfig
 defaultConfig = emptyTraceConfig {
   tcOptions = Map.fromList
     [([] :: Namespace,
-         [ CoSeverity InfoF
-         , CoDetail DNormal
-         , CoBackend [Stdout HumanFormatColoured]
+         [ ConfSeverity InfoF
+         , ConfDetail DNormal
+         , ConfBackend [Stdout HumanFormatColoured]
          ])
     ]
   }
@@ -299,7 +299,7 @@ getSeverity config ns =
     fromMaybe WarningF (getOption severitySelector config ns)
   where
     severitySelector :: ConfigOption -> Maybe SeverityF
-    severitySelector (CoSeverity s) = Just s
+    severitySelector (ConfSeverity s) = Just s
     severitySelector _              = Nothing
 
 getSeverity' :: Applicative m => TraceConfig -> Namespace -> m SeverityF
@@ -311,7 +311,7 @@ getDetails config ns =
     fromMaybe DNormal (getOption detailSelector config ns)
   where
     detailSelector :: ConfigOption -> Maybe DetailLevel
-    detailSelector (CoDetail d) = Just d
+    detailSelector (ConfDetail d) = Just d
     detailSelector _            = Nothing
 
 getDetails' :: Applicative m => TraceConfig -> Namespace -> m DetailLevel
@@ -325,7 +325,7 @@ getBackends config ns =
       (getOption backendSelector config ns)
   where
     backendSelector :: ConfigOption -> Maybe [BackendConfig]
-    backendSelector (CoBackend s) = Just s
+    backendSelector (ConfBackend s) = Just s
     backendSelector _             = Nothing
 
 getBackends' :: Applicative m => TraceConfig -> Namespace -> m [BackendConfig]
@@ -336,7 +336,7 @@ getLimiterSpec :: TraceConfig -> Namespace -> Maybe (Text, Double)
 getLimiterSpec = getOption limiterSelector
   where
     limiterSelector :: ConfigOption -> Maybe (Text, Double)
-    limiterSelector (CoLimiter n f) = Just (n, f)
+    limiterSelector (ConfLimiter n f) = Just (n, f)
     limiterSelector _               = Nothing
 
 
@@ -375,25 +375,25 @@ parseRepresentation bs = transform (decodeEither' bs)
       let tc'  = foldl' (\ tci (TraceOptionSeverity ns severity') ->
                           let ns' = split (=='.') ns
                               ns'' = if ns' == [""] then [] else ns'
-                          in Map.insertWith (++) ns'' [CoSeverity severity'] tci)
+                          in Map.insertWith (++) ns'' [ConfSeverity severity'] tci)
                         tc
                         (traceOptionSeverity cr)
           tc'' = foldl' (\ tci (TraceOptionDetail ns detail') ->
                           let ns' = split (=='.') ns
                               ns'' = if ns' == [""] then [] else ns'
-                          in Map.insertWith (++) ns'' [CoDetail detail'] tci)
+                          in Map.insertWith (++) ns'' [ConfDetail detail'] tci)
                         tc'
                         (traceOptionDetail cr)
           tc''' = foldl' (\ tci (TraceOptionBackend ns backend') ->
                           let ns' = split (=='.') ns
                               ns'' = if ns' == [""] then [] else ns'
-                          in Map.insertWith (++) ns'' [CoBackend backend'] tci)
+                          in Map.insertWith (++) ns'' [ConfBackend backend'] tci)
                         tc''
                         (traceOptionBackend cr)
           tc'''' = foldl' (\ tci (TraceOptionLimiter ns name frequ) ->
                           let ns' = split (=='.') ns
                               ns'' = if ns' == [""] then [] else ns'
-                          in Map.insertWith (++) ns'' [CoLimiter name frequ] tci)
+                          in Map.insertWith (++) ns'' [ConfLimiter name frequ] tci)
                         tc'''
                         (traceOptionLimiter cr)
       in TraceConfig
