@@ -98,7 +98,6 @@ limitFrequency
   -> m (Trace m a) -- the original trace
 limitFrequency thresholdFrequency limiterName vtracer ltracer = do
     timeNow <- systemTimeToSeconds <$> liftIO getSystemTime
---    trace ("limitFrequency called " <> unpack limiterName) $ pure ()
     foldMTraceM
       (checkLimiting (1.0 / thresholdFrequency))
       (FrequencyRec Nothing timeNow 0.0 0.0 Nothing)
@@ -106,8 +105,6 @@ limitFrequency thresholdFrequency limiterName vtracer ltracer = do
   where
     checkLimiting :: Double -> FrequencyRec a -> LoggingContext -> a -> m (FrequencyRec a)
     checkLimiting thresholdPeriod fs@FrequencyRec {..} lc message = do
-      -- trace ("Limiter " <> unpack limiterName <> " receives " <> show (lcNamespace lc))
-      --         $ pure ()
       timeNow <- liftIO $ systemTimeToSeconds <$> getSystemTime
       let elapsedTime      = timeNow - frLastTime
       let rawSpendReward   = elapsedTime - thresholdPeriod
@@ -115,14 +112,8 @@ limitFrequency thresholdFrequency limiterName vtracer ltracer = do
       let normaSpendReward = rawSpendReward * thresholdFrequency -- TODO not really normalized
       let spendReward      = min 0.5 (max (-0.5) normaSpendReward)
       let newBudget        = min 1.0 (max (-1.0) (spendReward + frBudget))
-      -- trace ("elapsedTime " ++ show elapsedTime
-      --        ++ " thresholdPeriod " ++ show thresholdPeriod
-      --        ++ " rawSpendReward " ++ show rawSpendReward
-      --        ++ " normaSpendReward "  ++ show normaSpendReward
-      --        ++ " spendReward "       ++ show spendReward
-      --        ++ " newBudget "       ++ show newBudget $
       case frActive of
-        Nothing -> -- not active
+        Nothing -> -- limiter not active
           if spendReward + frBudget <= -1.0
             then do  -- start limiting
               traceWith
@@ -163,8 +154,6 @@ limitFrequency thresholdFrequency limiterName vtracer ltracer = do
                                       (RememberLimiting limiterName nSuppressed)
                                     pure timeNow
                                   else pure frLastRem
-              -- trace ("lastPeriod " ++ show lastPeriod
-              --        ++ " thresholdPeriod " ++ show thresholdPeriod) $
                 if lastPeriod > thresholdPeriod
                   then -- send
                     pure fs  { frMessage     = Just message

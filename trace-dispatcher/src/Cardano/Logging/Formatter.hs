@@ -48,13 +48,13 @@ metricsFormatter application (Trace tr) =
         (lc, Nothing, v) ->
           let metrics = asMetrics v
           in T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
-                                , Nothing
-                                , FormattedMetrics metrics)
+                            , Nothing
+                            , FormattedMetrics metrics)
         (lc, Just ctrl, v) ->
           let metrics = asMetrics v
           in T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
-                                , Just ctrl
-                                , FormattedMetrics metrics)
+                            , Just ctrl
+                            , FormattedMetrics metrics)
 
 -- | Format this trace as TraceObject for the trace forwarder
 forwardFormatter
@@ -191,13 +191,13 @@ machineFormatter application (Trace tr) = do
           let detailLevel = fromMaybe DNormal (lcDetails lc)
           obj <- liftIO $ formatContextMachine hn application lc (forMachine detailLevel v)
           T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
-                             , Nothing
-                             , FormattedMachine (decodeUtf8 (BS.toStrict
-                                    (AE.encodingToLazyByteString obj))))
+                         , Nothing
+                         , FormattedMachine (decodeUtf8 (BS.toStrict
+                                (AE.encodingToLazyByteString obj))))
         (lc, Just c, _v) -> do
           T.traceWith tr (lc { lcNamespace = application : lcNamespace lc}
-                             , Just c
-                             , FormattedMachine "")
+                         , Just c
+                         , FormattedMachine "")
 
 formatContextMachine ::
      String
