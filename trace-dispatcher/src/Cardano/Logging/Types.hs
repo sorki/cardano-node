@@ -1,8 +1,8 @@
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE GADTs                      #-}
-{-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE RecordWildCards            #-}
-{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE RecordWildCards      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Cardano.Logging.Types (
     Trace(..)
@@ -168,21 +168,42 @@ data SeverityS
   deriving (Show, Eq, Ord, Bounded, Enum)
 
 -- | Severity for a filter
-data SeverityF
-    = DebugF                   -- ^ Debug messages
-    | InfoF                    -- ^ Information
-    | NoticeF                  -- ^ Normal runtime Conditions
-    | WarningF                 -- ^ General Warnings
-    | ErrorF                   -- ^ General Errors
-    | CriticalF                -- ^ Severe situations
-    | AlertF                   -- ^ Take immediate action
-    | EmergencyF               -- ^ System is unusable
-    | SilenceF                 -- ^ Don't show anything
-  deriving (Show, Eq, Ord, Bounded, Enum, Generic)
+-- Nothing means don't show anything (Silence)
+-- Nothing level means show messages with severity >= level
+newtype SeverityF = SeverityF (Maybe SeverityS)
+  deriving (Eq)
 
 instance AE.ToJSON SeverityF where
-    toEncoding = AE.genericToEncoding AE.defaultOptions
-instance AE.FromJSON SeverityF
+    toJSON (SeverityF (Just s)) = AE.String ((pack . show) s)
+    toJSON (SeverityF Nothing)  = AE.String "Silence"
+
+instance Enum SeverityF where
+  toEnum 8 = SeverityF Nothing
+  toEnum i = SeverityF (Just (toEnum i))
+  fromEnum (SeverityF Nothing) = 8
+  fromEnum (SeverityF (Just s)) = fromEnum s
+     
+
+instance AE.FromJSON SeverityF where
+    parseJSON (AE.String "Debug")     = pure (SeverityF (Just Debug))
+    parseJSON (AE.String "Info")      = pure (SeverityF (Just Info))
+    parseJSON (AE.String "Notice")    = pure (SeverityF (Just Notice))
+    parseJSON (AE.String "Warning")   = pure (SeverityF (Just Warning))
+    parseJSON (AE.String "Error")     = pure (SeverityF (Just Error))
+    parseJSON (AE.String "Critical")  = pure (SeverityF (Just Critical))
+    parseJSON (AE.String "Alert")     = pure (SeverityF (Just Alert))
+    parseJSON (AE.String "Emergency") = pure (SeverityF (Just Emergency))
+    parseJSON (AE.String "Scilence")  = pure (SeverityF Nothing)
+
+instance Ord SeverityF where
+  compare (SeverityF (Just s1)) (SeverityF (Just s2)) = compare s1 s2
+  compare (SeverityF Nothing) (SeverityF Nothing)     = EQ
+  compare (SeverityF (Just _s1)) (SeverityF Nothing)  = LT
+  compare (SeverityF Nothing) (SeverityF (Just _s2))  = GT
+
+instance Show SeverityF where
+  show (SeverityF (Just s)) = show s
+  show (SeverityF Nothing)  = "Silence"
 
 -- | Used as interface object for ForwarderTracer
 data TraceObject = TraceObject {

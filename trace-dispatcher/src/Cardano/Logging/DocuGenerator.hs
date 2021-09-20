@@ -254,10 +254,11 @@ documentMarkdown (Documented documented) tracers = do
     filteredBuilder l r =
       fromText "Filtered: "
       <> case (l, r) of
-            ([lh], [rh]) ->
+            ([SeverityF (Just lh)], [rh]) ->
               if fromEnum rh >= fromEnum lh
                 then (asCode . fromString) "Visible"
                 else (asCode . fromString) "Invisible"
+            ([SeverityF Nothing], [_rh]) -> "Invisible"    
             _ -> mempty
       <> fromText " ~ "
       <> mconcat (intersperse (fromText ", ")

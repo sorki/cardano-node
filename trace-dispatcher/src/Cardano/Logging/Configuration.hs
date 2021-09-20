@@ -45,7 +45,7 @@ defaultConfig :: TraceConfig
 defaultConfig = emptyTraceConfig {
   tcOptions = Map.fromList
     [([] :: Namespace,
-         [ ConfSeverity InfoF
+         [ ConfSeverity (SeverityF (Just Info))
          , ConfDetail DNormal
          , ConfBackend [Stdout HumanFormatColoured]
          ])
@@ -287,11 +287,11 @@ withLimitersFromConfig tr trl = do
 -- | If no severity can be found in the config, it is set to Warning
 getSeverity :: TraceConfig -> Namespace -> SeverityF
 getSeverity config ns =
-    fromMaybe WarningF (getOption severitySelector config ns)
+    fromMaybe (SeverityF (Just Warning)) (getOption severitySelector config ns)
   where
     severitySelector :: ConfigOption -> Maybe SeverityF
     severitySelector (ConfSeverity s) = Just s
-    severitySelector _              = Nothing
+    severitySelector _                = Nothing
 
 getSeverity' :: Applicative m => TraceConfig -> Namespace -> m SeverityF
 getSeverity' config ns = pure $ getSeverity config ns
@@ -303,7 +303,7 @@ getDetails config ns =
   where
     detailSelector :: ConfigOption -> Maybe DetailLevel
     detailSelector (ConfDetail d) = Just d
-    detailSelector _            = Nothing
+    detailSelector _              = Nothing
 
 getDetails' :: Applicative m => TraceConfig -> Namespace -> m DetailLevel
 getDetails' config ns = pure $ getDetails config ns
@@ -317,7 +317,7 @@ getBackends config ns =
   where
     backendSelector :: ConfigOption -> Maybe [BackendConfig]
     backendSelector (ConfBackend s) = Just s
-    backendSelector _             = Nothing
+    backendSelector _               = Nothing
 
 getBackends' :: Applicative m => TraceConfig -> Namespace -> m [BackendConfig]
 getBackends' config ns = pure $ getBackends config ns
@@ -328,7 +328,7 @@ getLimiterSpec = getOption limiterSelector
   where
     limiterSelector :: ConfigOption -> Maybe (Text, Double)
     limiterSelector (ConfLimiter n f) = Just (n, f)
-    limiterSelector _               = Nothing
+    limiterSelector _                 = Nothing
 
 
 -- | Searches in the config to find an option
