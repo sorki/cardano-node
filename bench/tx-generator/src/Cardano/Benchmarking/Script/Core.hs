@@ -400,7 +400,7 @@ runPlutusBenchmark submitMode scriptFile (ThreadName threadName) txCount tps = d
   let
     requiredMemory = 700000000
     requiredSteps  = 700000000
-    totalFee = baseFee + (fromIntegral requiredMemory + fromIntegral requiredSteps) * fromIntegral numOutputs
+    totalFee = baseFee + (fromIntegral requiredMemory + fromIntegral requiredSteps) * fromIntegral numInputs
     (Quantity minValue) = lovelaceToQuantity $ fromIntegral numOutputs * minValuePerUTxO + totalFee
   -- this is not totally correct:
   -- beware of rounding errors !
