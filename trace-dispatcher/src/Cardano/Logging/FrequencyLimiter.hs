@@ -58,7 +58,7 @@ instance LogFormatting LimitingMessage where
         ]
   asMetrics (StartLimiting _txt)          = []
   asMetrics (StopLimiting txt num)        = [IntM
-                                              ["SuppressedMessages " <> txt]
+                                              ("SuppressedMessages " <> txt)
                                               (fromIntegral num)]
   asMetrics (RememberLimiting _txt _num)  = []
 

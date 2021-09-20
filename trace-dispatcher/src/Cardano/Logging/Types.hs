@@ -89,14 +89,14 @@ class LogFormatting a where
 
 data Metric
   -- | An integer metric.
-  -- If the text array is not empty it is used as namespace namespace
-    = IntM Namespace Integer
+  -- Text is used to name the metric
+    = IntM Text Integer
   -- | A double metric.
-  -- If the text array is not empty it is used as namespace
-    | DoubleM Namespace Double
+  -- Text is used to name the metric
+    | DoubleM Text Double
   -- | An counter metric.
-  -- If the text array is not empty it is used as namespace namespace
-    | CounterM Namespace (Maybe Int)
+  -- Text is used to name the metric
+    | CounterM Text (Maybe Int)
   deriving (Show, Eq)
 
 -- | A helper function for creating an |Object| given a list of pairs, named items,
@@ -122,7 +122,7 @@ type Namespace = [Text]
 -- and a comment in markdown format
 data DocMsg a = DocMsg {
     dmPrototype :: a
-  , dmMetricsMD :: [(Namespace, Text)]
+  , dmMetricsMD :: [(Text, Text)]
   , dmMarkdown  :: Text
 } deriving (Show)
 
@@ -173,16 +173,15 @@ data SeverityS
 newtype SeverityF = SeverityF (Maybe SeverityS)
   deriving (Eq)
 
-instance AE.ToJSON SeverityF where
-    toJSON (SeverityF (Just s)) = AE.String ((pack . show) s)
-    toJSON (SeverityF Nothing)  = AE.String "Silence"
-
 instance Enum SeverityF where
   toEnum 8 = SeverityF Nothing
   toEnum i = SeverityF (Just (toEnum i))
   fromEnum (SeverityF Nothing) = 8
   fromEnum (SeverityF (Just s)) = fromEnum s
-     
+
+instance AE.ToJSON SeverityF where
+    toJSON (SeverityF (Just s)) = AE.String ((pack . show) s)
+    toJSON (SeverityF Nothing)  = AE.String "Silence"
 
 instance AE.FromJSON SeverityF where
     parseJSON (AE.String "Debug")     = pure (SeverityF (Just Debug))
@@ -303,13 +302,13 @@ data TraceControl where
     Reset     :: TraceControl
     Config    :: TraceConfig -> TraceControl
     Optimize  :: TraceControl
-    Document  :: Int -> Text -> [(Namespace, Text)] -> DocCollector -> TraceControl
+    Document  :: Int -> Text -> [(Text, Text)] -> DocCollector -> TraceControl
 
 newtype DocCollector = DocCollector (IORef (Map Int LogDoc))
 
 data LogDoc = LogDoc {
     ldDoc        :: Text
-  , ldMetricsDoc :: Map Namespace Text
+  , ldMetricsDoc :: Map Text Text
   , ldNamespace  :: [Namespace]
   , ldSeverity   :: [SeverityS]
   , ldPrivacy    :: [Privacy]
@@ -319,7 +318,7 @@ data LogDoc = LogDoc {
   , ldLimiter    :: [(Text, Double)]
 } deriving(Eq, Show)
 
-emptyLogDoc :: Text -> [(Namespace, Text)] -> LogDoc
+emptyLogDoc :: Text -> [(Text, Text)] -> LogDoc
 emptyLogDoc d m = LogDoc d (Map.fromList m) [] [] [] [] [] [] []
 
 -- | Type for a Fold
@@ -354,14 +353,14 @@ instance LogFormatting b => LogFormatting (Folding a b) where
 instance LogFormatting Double where
   forMachine _dtal d = mkObject [ "val" .= AE.String ((pack . show) d)]
   forHuman d         = (pack . show) d
-  asMetrics d        = [DoubleM [] d]
+  asMetrics d        = [DoubleM "" d]
 
 instance LogFormatting Int where
   forMachine _dtal i = mkObject [ "val" .= AE.String ((pack . show) i)]
   forHuman i         = (pack . show) i
-  asMetrics i        = [IntM [] (fromIntegral i)]
+  asMetrics i        = [IntM "" (fromIntegral i)]
 
 instance LogFormatting Integer where
   forMachine _dtal i = mkObject [ "val" .= AE.String ((pack . show) i)]
   forHuman i         = (pack . show) i
-  asMetrics i        = [IntM [] i]
+  asMetrics i        = [IntM "" i]
