@@ -101,13 +101,11 @@ withNamespaceConfig name extract withConfig tr = do
         Left (_cmap, Nothing) -> pure ()
         -- This can happen during reconfiguration, so we don't throw an error any more
     mkTrace ref (lc, Just Reset, a) = do
---      trace ("mkTrace Reset  " <> show (lcNamespace lc)) $ pure ()
       liftIO $ writeIORef ref (Left (Map.empty, Nothing))
       tt <- withConfig Nothing tr
       T.traceWith (unpackTrace tt) (lc, Just Reset, a)
 
     mkTrace ref (lc, Just (Config c), m) = do
---      trace ("mkTrace Config  " <> show (lcNamespace lc)) $ pure ()
       ! val <- extract c (lcNamespace lc)
       eitherConf <- liftIO $ readIORef ref
       case eitherConf of
@@ -136,12 +134,8 @@ withNamespaceConfig name extract withConfig tr = do
       case eitherConf of
         Left (cmap, Nothing) ->
           case nub (Map.elems cmap) of
-            []     -> -- trace ("mkTrace Optimize empty " <> show (lcNamespace lc)) $
-                      -- This will never be called!?
-                        pure ()
+            []     -> pure ()
             [val]  -> do
-                        -- trace ("mkTrace Optimize one "  <> show (lcNamespace lc)
-                        --   <> " val " <> show val) $ pure ()
                         liftIO $ writeIORef ref $ Right val
                         Trace tt <- withConfig (Just val) tr
                         T.traceWith tt (lc, Just Optimize, m)
@@ -155,9 +149,6 @@ withNamespaceConfig name extract withConfig tr = do
                                               (Map.assocs decidingDict)
                           newmap = Map.filter (/= mostCommon) cmap
                       in do
-                        -- trace ("mkTrace Optimize map " <> show (lcNamespace lc)
-                        --         <> " val " <> show mostCommon
-                        --         <> " map " <> show newmap) $ pure ()
                         liftIO $ writeIORef ref (Left (newmap, Just mostCommon))
                         Trace tt <- withConfig Nothing tr
                         T.traceWith tt (lc, Just Optimize, m)
