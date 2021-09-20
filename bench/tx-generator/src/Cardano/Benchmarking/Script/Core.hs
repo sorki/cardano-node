@@ -398,8 +398,8 @@ runPlutusBenchmark submitMode scriptFile (ThreadName threadName) txCount tps = d
   connectClient <- getConnectClient
 
   let
-    requiredMemory = 700000000
-    requiredSteps  = 700000000
+    requiredMemory = 70000000
+    requiredSteps  = 70000000
     totalFee = baseFee + (fromIntegral requiredMemory + fromIntegral requiredSteps) * fromIntegral numInputs
     (Quantity minValue) = lovelaceToQuantity $ fromIntegral numOutputs * minValuePerUTxO + totalFee
   -- this is not totally correct:
@@ -517,7 +517,7 @@ createChangeScriptFunds submitMode scriptFile value count = do
   fundKey <- getName $ KeyName "pass-partout"
   fee <- getUser TFee  
   let scriptData = PlutusExample.toScriptHash "e88bd757ad5b9bedf372d8d3f0cf6c962a469db61a265f6418e1ffed86da29ec"
-  script <- liftIO $ PlutusExample.readScript scriptFile
+  script <- liftIO $ PlutusExample.readScript scriptFile --TODO: this should throw a file-not-found-error !
   let
     createCoins fundSource coins = do
       let

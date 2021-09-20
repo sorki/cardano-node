@@ -1,5 +1,7 @@
 pkgs:
 let
+  plutus = true;
+  plutusScriptFile = "../../../bench/script/sum1ToN.plutus";
   ## Standard, simplest possible value transaction workload.
   ##
   ## For definitions of the cfg attributes referred here,
@@ -27,17 +29,18 @@ let
       { importGenesisFund = "pass-partout"; fundKey  = "pass-partout"; submitMode.LocalSocket = []; }
       { delay             = init_cooldown; }
     ]
+    ++
     ( let
-        requiredMemory = 700000000; # hardcoded in Haskell
-        requiredSteps  = 700000000; # hardcoded in Haskell
-        totalFee = tx_fee + (requiredMemory + requiredSteps) * inputs_per_tx;
-        safeCollateral = (requiredMemory + requiredSteps) * inputs_per_tx + min_utxo_value;
+        requiredMemory = 70000000; # hardcoded in Haskell
+        requiredSteps  = 70000000; # hardcoded in Haskell
+        totalFee = if plutus
+                   then tx_fee + (requiredMemory + requiredSteps) * inputs_per_tx
+                   else tx_fee;
+        safeCollateral = max ((requiredMemory + requiredSteps) * inputs_per_tx) min_utxo_value;
         minTotalValue = min_utxo_value * outputs_per_tx + totalFee;
         minValuePerInput = minTotalValue / inputs_per_tx + 1;
-        # This is minValuePerInput for the Plutus case.
-        # The same value is a safe approx for none-Plutus.
       in
-        if !cfg.plutus
+        if !plutus
           then createChangeRecursive cfg minValuePerInput (tx_count * inputs_per_tx)
         else
           [
@@ -56,9 +59,9 @@ let
         txCount = tx_count;
         tps = tps;
         submitMode.NodeToNode = [];
-        spendMode = if cfg.plutus
-                    then { SpendScript = cfg.plutusScriptFile; }
-                    else { SpendOutput = []; }        
+        spendMode = if plutus
+                    then { SpendScript = plutusScriptFile; }
+                    else { SpendOutput = []; };
       }
       { waitBenchmark = "tx-submit-benchmark"; }
     ];
@@ -91,12 +94,11 @@ let
     [ { createChange = value;
         count = count;
         submitMode.LocalSocket = [];
-        payMode.PayToScript = cfg.plutusScriptFile;
+        payMode.PayToScript = plutusScriptFile;
       }
       { delay = cfg.init_cooldown; }
     ];
 
-  
   createChangeRecursive = cfg: value: count: if count <= 30
     then createChangeScript cfg value count
     else createChangeRecursive cfg (value * 30 + cfg.tx_fee) (count / 30 + 1) ++ createChangeScript cfg value count;
@@ -104,7 +106,6 @@ let
   createChangePlutus = cfg: value: count: if count <= 30
     then createChangeScriptPlutus cfg value count
     else createChangeRecursive cfg (value * 30 + cfg.tx_fee) (count / 30 + 1) ++ createChangeScriptPlutus cfg value count;
-
   
 in pkgs.commonLib.defServiceModule
   (lib: with lib;
