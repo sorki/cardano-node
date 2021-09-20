@@ -76,8 +76,8 @@ foreign import ccall unsafe c_get_process_memory_info :: Ptr MachTaskBasicInfo -
 
 getMemoryInfo :: ProcessID -> IO MachTaskBasicInfo
 getMemoryInfo pid =
-  allocaBytes 128 $ \ptr -> do
-  res <- c_get_process_memory_info ptr (fromIntegral pid)
+    allocaBytes 128 $ \ptr -> do
+    res <- c_get_process_memory_info ptr (fromIntegral pid)
     if res < 0
       then do
         putStrLn $ "c_get_process_memory_info: failure returned: " ++ (show res)
