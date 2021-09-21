@@ -129,7 +129,7 @@ instance Storable CpuTimes where
 foreign import ccall unsafe c_get_proc_cpu_times :: Ptr CpuTimes -> CInt -> IO CInt
 
 
-getMemoryInfo :: ProcessID -> IO ProcessMemoryCounters
+getMemoryInfo :: ProcessId -> IO ProcessMemoryCounters
 getMemoryInfo pid =
     allocaBytes 128 $ \ptr -> do
       throwIfNeg_ (\res -> "c_get_process_memory_info: failure returned: " ++ show res)
