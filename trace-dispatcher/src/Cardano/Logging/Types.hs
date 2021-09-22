@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE RecordWildCards      #-}
+{-# LANGUAGE StandaloneDeriving   #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Cardano.Logging.Types (
@@ -37,6 +38,7 @@ module Cardano.Logging.Types (
 ) where
 
 -- import           Control.Tracer
+import           Codec.Serialise (Serialise (..))
 import qualified Control.Tracer as T
 import           Data.Aeson ((.=))
 import qualified Data.Aeson as AE
@@ -50,6 +52,8 @@ import           Data.Text.Lazy (toStrict)
 import           Data.Time (UTCTime)
 import           GHC.Generics
 import           Network.HostName (HostName)
+
+import           Ouroboros.Network.Util.ShowProxy (ShowProxy (..))
 
 -- | The Trace carries the underlying tracer Tracer from the contra-tracer package.
 --   It adds a 'LoggingContext' and maybe a 'TraceControl' to every message.
@@ -176,7 +180,7 @@ newtype SeverityF = SeverityF (Maybe SeverityS)
 instance Enum SeverityF where
   toEnum 8 = SeverityF Nothing
   toEnum i = SeverityF (Just (toEnum i))
-  fromEnum (SeverityF Nothing) = 8
+  fromEnum (SeverityF Nothing)  = 8
   fromEnum (SeverityF (Just s)) = fromEnum s
 
 instance AE.ToJSON SeverityF where
@@ -364,3 +368,19 @@ instance LogFormatting Integer where
   forMachine _dtal i = mkObject [ "val" .= AE.String ((pack . show) i)]
   forHuman i         = (pack . show) i
   asMetrics i        = [IntM "" i]
+
+---------------------------------------------------------------------------
+-- Instances for 'TraceObject' to forward it using 'trace-forward' library.
+
+deriving instance Generic Privacy
+deriving instance Generic SeverityS
+deriving instance Generic LoggingContext
+deriving instance Generic TraceObject
+
+instance Serialise DetailLevel
+instance Serialise Privacy
+instance Serialise SeverityS
+instance Serialise LoggingContext
+instance Serialise TraceObject
+
+instance ShowProxy TraceObject

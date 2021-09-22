@@ -6,7 +6,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving  #-}
 
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Cardano.Logging.Tracer.Forward
   (
@@ -14,10 +13,8 @@ module Cardano.Logging.Tracer.Forward
   ) where
 
 import           Codec.CBOR.Term (Term)
-import           Codec.Serialise (Serialise (..))
 import           Control.Concurrent.Async (race_, wait, withAsync)
 import           Control.Monad.IO.Class
-import           GHC.Generics (Generic)
 
 import qualified Control.Tracer as T
 import           "contra-tracer" Control.Tracer (contramap, stdoutTracer)
@@ -47,7 +44,6 @@ import           Ouroboros.Network.Socket (AcceptedConnectionsLimit (..),
                      SomeResponderApplication (..), cleanNetworkMutableState,
                      newNetworkMutableState, nullNetworkServerTracers,
                      withServerNode)
-import           Ouroboros.Network.Util.ShowProxy (ShowProxy (..))
 
 import qualified System.Metrics as EKG
 import qualified System.Metrics.Configuration as EKGF
@@ -60,22 +56,6 @@ import           Trace.Forward.Utils
 import           Cardano.Logging.DocuGenerator
 import           Cardano.Logging.Types
 import           Cardano.Logging.Utils(uncurry3)
-
-
--- Instances for 'TraceObject' to forward it using 'trace-forward' library.
-
-deriving instance Generic Privacy
-deriving instance Generic SeverityS
-deriving instance Generic LoggingContext
-deriving instance Generic TraceObject
-
-instance Serialise DetailLevel
-instance Serialise Privacy
-instance Serialise SeverityS
-instance Serialise LoggingContext
-instance Serialise TraceObject
-
-instance ShowProxy TraceObject
 
 ---------------------------------------------------------------------------
 
