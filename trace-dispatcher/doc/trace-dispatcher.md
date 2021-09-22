@@ -378,13 +378,13 @@ If aggregated information from multiple consecutive messages is needed the follo
 ```haskell
 -- | Folds the function with state acc over messages a in the trace.
 foldTraceM :: MonadIO m
-  => (acc -> a -> acc)
+  => (acc -> LoggingContext -> Maybe TraceControl -> a -> acc)
   -> acc
   -> Trace m (Folding a acc)
   -> m (Trace m a)
 
 foldMTraceM :: forall a acc m . MonadIO m
-  => (acc -> a -> m acc)
+  => (acc -> LoggingContext -> Maybe TraceControl -> a -> acc)
   -> acc
   -> Trace m (Folding a acc)
   -> m (Trace m a)

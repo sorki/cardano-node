@@ -40,8 +40,8 @@ baseStatsDocumented =
 emptyStats :: BaseStats
 emptyStats = BaseStats 0.0 100000000.0 (-100000000.0) 0 0.0
 
-calculate :: BaseStats -> LoggingContext -> Double -> BaseStats
-calculate BaseStats{..} _ val =
+calculate :: BaseStats -> LoggingContext -> Maybe TraceControl -> Double -> BaseStats
+calculate BaseStats{..} _ _ val =
     BaseStats
       val
       (min bsMin val)

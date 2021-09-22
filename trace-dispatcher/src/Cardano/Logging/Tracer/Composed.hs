@@ -3,6 +3,7 @@
 module Cardano.Logging.Tracer.Composed (
     mkCardanoTracer
   , mkCardanoTracer'
+  , MessageOrLimit(..)
   ) where
 
 import           Data.Maybe                       (fromMaybe)

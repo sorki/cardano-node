@@ -36,7 +36,7 @@ module Cardano.Logging.Types (
   , PreFormatted(..)
 ) where
 
-import           Control.Tracer
+-- import           Control.Tracer
 import qualified Control.Tracer as T
 import           Data.Aeson ((.=))
 import qualified Data.Aeson as AE
@@ -54,10 +54,10 @@ import           Network.HostName (HostName)
 -- | The Trace carries the underlying tracer Tracer from the contra-tracer package.
 --   It adds a 'LoggingContext' and maybe a 'TraceControl' to every message.
 newtype Trace m a = Trace
-  {unpackTrace :: Tracer m (LoggingContext, Maybe TraceControl, a)}
+  {unpackTrace :: T.Tracer m (LoggingContext, Maybe TraceControl, a)}
 
 -- | Contramap lifted to Trace
-instance Monad m => Contravariant (Trace m) where
+instance Monad m => T.Contravariant (Trace m) where
     contramap f (Trace tr) = Trace $
       T.contramap (\ (lc, mbC, a) -> (lc, mbC, f a)) tr
 
