@@ -11,6 +11,7 @@ module Cardano.Logging.Resources.Windows
 import           Data.Word (Word64)
 import           Foreign.C.Types
 import           Foreign.Marshal.Alloc
+import           Foreign.Marshal.Error
 import           Foreign.Ptr
 import           Foreign.Storable
 import qualified GHC.Stats as GhcStats
