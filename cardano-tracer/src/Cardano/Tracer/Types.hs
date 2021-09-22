@@ -12,6 +12,7 @@ module Cardano.Tracer.Types
   , initAcceptedMetrics
   , initAcceptedNodeInfo
   , prepareAcceptedMetrics
+  , printNodeFullId
   ) where
 
 import           Control.Concurrent.STM (atomically)
@@ -20,7 +21,8 @@ import           Control.Monad (unless)
 import           Data.Hashable (Hashable)
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HM
-import           Data.Text (Text, replace, pack)
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           GHC.Generics (Generic)
 import qualified System.Metrics as EKG
 
@@ -40,11 +42,16 @@ connIdToNodeId ConnectionId{remoteAddress} = NodeId preparedAddress
   -- We have to remove "wrong" symbols from 'NodeId',
   -- to make it appropriate for the name of the subdirectory.
   preparedAddress =
-      replace " "  "-"
-    . replace "\"" ""
-    . replace "/"  "-"
-    . pack
+      T.replace "LocalAddress" "" -- There are only local addresses by design.
+    . T.replace " " "-"
+    . T.replace "\"" ""
+    . T.replace "/" "-"
+    . T.pack
     $ show remoteAddress
+
+printNodeFullId :: Text -> NodeId -> Text
+printNodeFullId ""       (NodeId p) = T.drop 2 p -- In this case '--' in the beginning is useless.
+printNodeFullId nodeName (NodeId p) = nodeName <> p
 
 -- | We have to create EKG.Store and MetricsLocalStore
 --   to keep the metrics accepted from the node.

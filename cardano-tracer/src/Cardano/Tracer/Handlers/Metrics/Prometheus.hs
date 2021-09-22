@@ -65,7 +65,7 @@ runPrometheusServer (Endpoint host port) acceptedMetrics acceptedNodeInfo = fore
   mkListOfHrefs :: [(NodeId, NodeInfo)] -> IO Html
   mkListOfHrefs ni = do
     nodeHrefs <- forM ni $ \(nodeId, NodeInfo{niName}) -> do
-      let nodeFullId = T.unpack niName <> "-" <> show nodeId
+      let nodeFullId = T.unpack $ printNodeFullId niName nodeId
       return $ a ! href (mkURL nodeFullId) $ toHtml nodeFullId
     return $ mkPage nodeHrefs
 
@@ -106,7 +106,7 @@ getMetricsFromNode (nodeFullId':_) acceptedMetrics = do
           let (ekgStore, _) = metrics HM.! nodeId
           sampleAll ekgStore >>= return . renderListOfMetrics . getListOfMetrics
  where
-  -- For example, "127.0.0.1-17890" is suffix of "node-1-127.0.0.1-17890"
+  -- For example, "run-user-1000-core.sock" is suffix of "core-1--run-user-1000-core.sock"
   nodeIdWeNeed nodeId = T.pack (show nodeId) `T.isSuffixOf` nodeFullId
   nodeFullId = decodeUtf8 nodeFullId'
 

@@ -94,9 +94,7 @@ prepareLogsStructure nodeId nodeName rootDir format = do
   return pathToCurrentLog
  where
   subDirForLogs = rootDir </> nodeFullId
-  nodeFullId = if T.null nodeName
-                 then show nodeId
-                 else T.unpack nodeName <> "-" <> show nodeId
+  nodeFullId = T.unpack $ printNodeFullId nodeName nodeId
   -- This is a symlink to the current log file, please see rotation parameters.
   pathToCurrentLog = subDirForLogs </> symLinkName format
 
