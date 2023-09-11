@@ -32,6 +32,10 @@ packages:
   trace-dispatcher
   trace-resources
   trace-forward
+  ../ouroboros-consensus/ouroboros-consensus
+  ../ouroboros-consensus/ouroboros-consensus-cardano
+  ../ouroboros-consensus/ouroboros-consensus-diffusion
+  ../ouroboros-consensus/ouroboros-consensus-protocol
 
 extra-packages:
   cardano-cli
